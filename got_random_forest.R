@@ -46,6 +46,10 @@ mean_rating_weighted <- got_data_2 %>%
   group_by(character) %>%
   summarise(avr = mean(weighted_rating))
 
+got_data_2 <- got_data_2 %>%
+  group_by(character) %>%
+  mutate(avr = mean(weighted_rating))
+
 #getting top 35 character
 top_characters <- filter(mean_rating_weighted, mean_rating_weighted$avr > "0.23")
 
@@ -67,7 +71,7 @@ got_data_2 <- inner_join(got_data_2,character_id, by = "character")
 
 #tall_predictive
 got_data_tall_predictive <- subset(got_data_2, select=c("overall_rating", 
-                                                        "screen.time","id"))
+                                                        "screen.time","id", "total_votes", "weighted_rating"))
 
 got_data_tall_predictive <- as.data.frame(got_data_tall_predictive)
 
@@ -84,34 +88,28 @@ round(importance(got_RF), 2)
 pred<-predict(got_RF,test_data) #Predictions on Test 
 pred
 
-# "season", "episode", "overall_rating","screen.time", "weighted_rating", "id", "total_votes"
-#   20         3             --               1000             --             2,     --
-test.df <- data.frame("screen.time"= c(10), "id"= c(404))
 
-pred<-predict(got_RF,test.df) #Predictions on Test 
+test.df <- data.frame("screen.time"= c(10), "id"= c(404), "avr" = (0.01289660228)) 
 
+pred<-predict(got_RF,test.df) #Predictions on Test for Wun being in Episode for 10 
+#predicts that show will receive a rating 9.5
 
-#wide_predictive
-got_data_wide_predictive <- got_data %>%
-  spread(key = character, value = screen.time)
-got_data_wide_predictive <- got_data_wide_predictive[,-5:-57]
-got_data_wide_predictive <- got_data_wide_predictive[,-1:-3]
-got_data_wide_predictive[is.na(got_data_wide_predictive)] <- 0
-got_data_wide_predictive <- got_data_wide_predictive %>%
-  mutate_all(as.numeric)
-
-#Primitive predictive model with data in tall form
-training_data_wide <- got_data_wide_predictive[1:41,]
-test_data_wide <- got_data_wide_predictive[42:67, ]
-
-got_RF_wide <- randomForest(overall_rating ~ . , data = training_data_wide, type = "classification")
-got_RF_wide
-plot(got_RF_wide)  
 
 round(importance(got_RF), 2)
 
 pred<-predict(got_RF,test_data) #Predictions on Test 
 pred
+
+actual_vs_pred <- cbind(pred, test_data)
+
+
+ggplot(data = actual_vs_pred) + 
+  geom_point(aes(x = id,  y=overall_rating), color = "green", size = 5) +
+  geom_point(aes(x = id, y=pred), color = "red", size = 5) +
+  labs(title = "Actual vs. Predicted Ratings",
+       x = "Episode Number",
+       y = "Rating") +
+  theme(plot.title = element_text(hjust = 0.5))
 
 # "season", "episode", "overall_rating","screen.time", "weighted_rating", "id", "total_votes"
 #   20         3             --               1000             --             2,     --
